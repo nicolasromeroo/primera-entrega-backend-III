@@ -1,17 +1,38 @@
 
-import jwt from "jsonwebtoken"
-import envsConfig from "../config/envs.config.js"
 
-export const createToken = (user) => {
-    const { username } = user 
-    const token = jwt.sign({ username }, envsConfig.JWT_KEY, { expiresIn: "5m" })
-    return token
+// utils/jwt.js
+import jwt from "jsonwebtoken";
+import envsConfig from "../config/envs.config.js";
+
+export function createToken(payload) {
+    return new Promise((resolve, reject) => {
+        jwt.sign(
+            payload,
+            envsConfig.JWT_KEY,
+            {
+                expiresIn: "1h", 
+            },
+            (err, token) => {
+                if (err) reject(err);
+                resolve(token);
+            }
+        );
+    });
 }
 
-export const verifyToken = (token) => {
-    try {
-        const decode = jwt.verify(token, envsConfig.JWT_KEY)
-    } catch (error) {
-        return null
+export const verifyToken = (req, res, next) => {
+    const token = req.cookies.token || req.headers['authorization']?.split(' ')[1]; 
+
+    if (!token) {
+        return res.status(401).json({ message: "Token no proporcionado" });
     }
-}
+
+    jwt.verify(token, envsConfig.JWT_KEY, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({ message: "Token inválido o expirado" });
+        }
+
+        req.user = decoded; 
+        next(); 
+    });
+};

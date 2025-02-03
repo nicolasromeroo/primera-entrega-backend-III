@@ -1,64 +1,85 @@
-// import React, { useState } from 'react';
-// import axios from 'axios';
-// import "../assets/styles/styles.css";
-
-// const TaskForm = ({ onAddTask }) => {
-//     const [task, setTask] = useState({ title: '', category: '', priority: '' });
-
-//     const handleChange = (e) => {
-//         setTask({ ...task, [e.target.name]: e.target.value });
-//     };
-
-//     const handleSubmit = async (e) => {
-//         e.preventDefault();
-//         try {
-//             const res = await axios.post('http://localhost:8080/api/tasks', task); // task incluye title, category y priority
-//             onAddTask(res.data); // Llamamos a onAddTask para agregar la nueva tarea a TaskList
-//             setTask({ title: '', category: '', priority: '' }); // Limpiar formulario
-//         } catch (error) {
-//             console.error("Error al agregar la tarea:", error);
-//         }
-//     };
-//     return (
-//         <form onSubmit={handleSubmit}>
-//             <input name="title" placeholder="Tarea" value={task.title} onChange={handleChange} required />
-//             <input name="category" placeholder="Categoría" value={task.category} onChange={handleChange} required />
-//             <input name="priority" type="number" placeholder="Prioridad (%)" value={task.priority} onChange={handleChange} required />
-//             <button type="submit">Agregar</button>
-//         </form>
-//     );
-// };
-
-// export default TaskForm;
-
 import React, { useState } from 'react';
 import axios from 'axios';
+import Cookies from 'js-cookie';
 import "../assets/styles/styles.css";
 
-const TaskForm = ({ onAddTask }) => {
+const TaskForm = ({ onAddTask, userId }) => {  
     const [task, setTask] = useState({ title: '', category: '', priority: '' });
+    const [error, setError] = useState(null);
 
     const handleChange = (e) => {
-        setTask({ ...task, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setTask({
+            ...task,
+            [name]: name === "priority" ? Number(value) : value, 
+        });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(null); 
+
+        const token = Cookies.get("token");
+        if (!token) {
+            setError("No hay sesión activa.");
+            return;
+        }
+
         try {
-            const res = await axios.post('http://localhost:8080/api/tasks', task); // Enviar la tarea al backend
-            onAddTask(res.data); // Pasa la nueva tarea al TaskManager
-            setTask({ title: '', category: '', priority: '' }); // Limpiar el formulario
+            const res = await axios.post('http://localhost:8080/api/tasks', {
+                ...task,
+                userId: userId,  
+            });
+            onAddTask(res.data); 
+            setTask({ title: '', category: '', priority: '' });  
         } catch (error) {
             console.error("Error al agregar la tarea:", error);
+            setError("No se pudo agregar la tarea. Inténtalo de nuevo.");
         }
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <input name="title" placeholder="Tarea" value={task.title} onChange={handleChange} required />
-            <input name="category" placeholder="Categoría" value={task.category} onChange={handleChange} required />
-            <input name="priority" type="number" placeholder="Prioridad (%)" value={task.priority} onChange={handleChange} required />
-            <button type="submit">Agregar</button>
+        <form onSubmit={handleSubmit} className="task-form">
+            <label>
+                Tarea:
+                <input
+                    name="title"
+                    placeholder="Ej. Comprar leche"
+                    value={task.title}
+                    onChange={handleChange}
+                    required
+                />
+            </label>
+
+            <label>
+                Categoría:
+                <input
+                    name="category"
+                    placeholder="Ej. Compras"
+                    value={task.category}
+                    onChange={handleChange}
+                    required
+                />
+            </label>
+
+            <label>
+                Prioridad (%):
+                <input
+                    name="priority"
+                    type="number"
+                    placeholder="Ej. 50"
+                    value={task.priority}
+                    onChange={handleChange}
+                    min="1" max="100"
+                    required
+                />
+            </label>
+
+            <button type="submit" disabled={!task.title || !task.category || !task.priority}>
+                Agregar
+            </button>
+
+            {error && <p className="error-message">{error}</p>}
         </form>
     );
 };

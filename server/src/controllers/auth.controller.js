@@ -2,7 +2,6 @@
 import bcrypt from "bcrypt"
 import { userDao } from "../dao/user.dao.js"
 import { createToken } from "../utils/jwt.js";
-import { isValidPassword } from "../utils/hashPassword.js";
 
 export const register = async (req, res) => {
     const { username, password } = req.body;
@@ -20,18 +19,15 @@ export const register = async (req, res) => {
             password: hashedPassword,
         });
 
-        const token = createToken(newUser)
+        const userSaved = await newUser.save()
 
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 360000
+        const token = await createToken({ id: userSaved._id })
+        res.cookie("token", token)
+        res.json({
+            id: userSaved._id,
+            username: userSaved.username
         })
-
-        res.status(201).json({ user: newUser, token });
-
     } catch (error) {
-        console.error("Error al registrar usuario:", error);
         res.status(500).json({ message: "Error al registrar usuario" });
     }
 }
@@ -40,28 +36,44 @@ export const login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        const user = await userDao.getByUsername(username);
-        if (!user) {
+        const userFound = await userDao.getByUsername(username);
+        if (!userFound) {
             return res.status(400).json({ message: "Nombre de usuario o contraseña incorrectos" });
         }
 
-        // Utiliza la función isValidPassword para la comparación
-        const isMatch = isValidPassword(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: "Nombre de usuario o contraseña incorrectos" });
-        }
+        const isMatch = await bcrypt.compare(password, userFound.password)
 
-        const token = createToken(user);
+        if (!isMatch) return res.status(400).json({ message: "Contraseña inválida." })
 
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: true,  // Asegúrate de que tu servidor esté usando HTTPS si usas secure: true
-            maxAge: 3600000  // 1 hora de duración
-        });
+        const token = await createToken({ id: userFound._id });
 
-        res.status(200).json({ user, token });
+        res.cookie("token", token)
+
+        res.json({
+            id: userFound._id,
+            username: userFound.username
+        })
+
     } catch (error) {
         console.error("Error al iniciar sesión:", error);
         res.status(500).json({ message: "Error al iniciar sesión" });
     }
 };
+
+export const logout = (req, res) => {
+    res.cookie("token", "", {
+        expires: new Date(0)
+    })
+    return res.sendStatus(200)
+}
+
+export const profile = async (req, res) => {
+    const userFound = await userDao.getById(req.user.id);
+
+    if (!userFound) return res.status(400).json({ message: "Usuario no encontrado." })
+
+    return res.json({
+        id: userFound._id,
+        username: userFound.username
+    })
+}

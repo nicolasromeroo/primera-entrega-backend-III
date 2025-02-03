@@ -1,51 +1,147 @@
 
+// // TaskList.jsx
+// import React, { useState, useEffect } from "react";
+// import { FaCheckCircle, FaCircle, FaUndo } from "react-icons/fa";
+// import axios from "axios";
+// import Cookies from "js-cookie";
+// import { deleteTask } from "../../../../server/src/controllers/task.controller.js";
 
-import React from "react";
-import { FaCheckCircle, FaCircle, FaUndo } from "react-icons/fa"; // Importar íconos
+// const TaskList = ({ tasks = [], setTasks }) => {
+//   const [loading, setLoading] = useState(true);  
+//   const [error, setError] = useState(null);  
+
+//   const getTokenFromCookies = () => Cookies.get("token"); 
+
+//   useEffect(() => {
+//     const fetchTasks = async () => {
+//       const token = getTokenFromCookies();
+//       if (!token) {
+//         setError("Token no encontrado.");
+//         setLoading(false);
+//         return;
+//       }
+
+//       try {
+        
+//         const { data } = await axios.get("http://localhost:8080/api/tasks", {
+//           headers: { Authorization: `Bearer ${token}` },
+//         });
+//         setTasks(data);  
+//       } catch (error) {
+//         setError("Error al obtener tareas.");
+//       } finally {
+//         setLoading(false);  
+//       }
+//     };
+
+//     fetchTasks();  
+//   }, [setTasks]);  
+
+//   if (loading) {
+//     return <p>Cargando tareas...</p>;
+//   }
+
+//   if (error) {
+//     return <p>{error}</p>;
+//   }
+
+//   if (tasks.length === 0) {
+//     return <p>No hay tareas.</p>;
+//   }
+
+//   return (
+//     <div>
+//       <h2>Lista de Tareas</h2>
+//       {tasks.map((task) => (
+//         <div key={task._id} className={task.completed ? "completed" : ""}>
+//           <h3>{task.title}</h3>
+//           <button onClick={() => toggleTask(task._id, task.completed)}>
+//             {task.completed ? <FaUndo /> : <FaCircle />}
+//             {task.completed ? "Deshacer" : "Completar"}
+//           </button>
+//           <button onClick={() => deleteTask(task._id)}>Eliminar</button>
+//         </div>
+//       ))}
+//     </div>
+//   );
+// };
+
+// export default TaskList;
+
+// TaskList.jsx
+import React, { useState, useEffect } from "react";
+import { FaCheckCircle, FaCircle, FaUndo } from "react-icons/fa";
 import axios from "axios";
-import isAuthenticated from "../../../../server/src/middleware/isAuthenticated.middleware.js"
-import "../assets/styles/taskList.css"
+import Cookies from "js-cookie";
 
+const TaskList = ({ tasks = [], setTasks }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-const TaskList = ({ tasks, setTasks }) => {
-  const token = localStorage.getItem("token")
-  const axiosInstance = isAuthenticated(); // Obtener la instancia de axios autenticada
+  const getTokenFromCookies = () => Cookies.get("token");
 
-
-  const axiosConfig = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-
-  // Función para eliminar una tarea
-  const deleteTask = async (taskId) => {
-    if (window.confirm("¿Estás seguro de que quieres eliminar esta tarea?")) {
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const token = getTokenFromCookies();
+      if (!token) {
+        setError("Token no encontrado.");
+        setLoading(false);
+        return;
+      }
 
       try {
-        if (!axiosInstance) {
-          throw new Error("Usuario no autenticado. Inicia sesión para continuar.");
-        }
-
-        await axiosInstance.delete(`/tasks/${taskId}`, axiosConfig);
-
-        setTasks((prevTasks) => prevTasks.filter((task) => task._id !== taskId));
+        const { data } = await axios.get("http://localhost:8080/api/tasks", {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        });
+        setTasks(data);
       } catch (error) {
-        console.error("Error al eliminar la tarea:", error);
+        setError("Error al obtener tareas.");
+      } finally {
+        setLoading(false);
       }
+    };
+
+    fetchTasks();
+  }, [setTasks]);
+
+  const handleDelete = async (taskId) => {
+    const token = getTokenFromCookies();
+    if (!token) {
+      setError("Token no encontrado.");
+      return;
+    }
+
+    try {
+      await axios.delete(`http://localhost:8080/api/tasks/${taskId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+      setTasks((prevTasks) => prevTasks.filter((task) => task._id !== taskId));
+    } catch (error) {
+      console.error("Error al eliminar la tarea:", error);
     }
   };
 
-  // Función para alternar el estado de una tarea (completada/incompleta)
-  const toggleTask = async (taskId, currentStatus) => {
+  const toggleTask = async (taskId, completed) => {
+    const token = getTokenFromCookies();
+    if (!token) {
+      setError("Token no encontrado.");
+      return;
+    }
+
     try {
-      const updatedTask = await axios.put(`http://localhost:8080/api/tasks/${taskId}`, {
-        completed: !currentStatus
-        , axiosConfig
-      });
+      const { data } = await axios.put(
+        `http://localhost:8080/api/tasks/${taskId}`,
+        { completed: !completed },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
-          task._id === taskId ? { ...task, completed: !currentStatus } : task
+          task._id === taskId ? { ...task, completed: data.completed } : task
         )
       );
     } catch (error) {
@@ -53,66 +149,26 @@ const TaskList = ({ tasks, setTasks }) => {
     }
   };
 
-  // Función para copiar el resumen de tareas
-  const copyTaskSummary = () => {
-    const date = new Date().toLocaleDateString("es-ES"); // Fecha en formato DD/MM/AAAA
-    let summary = `*TAREAS ${date}*\n`;
-    tasks.forEach((task) => {
-      const statusIcon = task.completed ? "✅" : "🚫";
-      summary += `- ${task.title} ${statusIcon}\n`;
-    });
-
-    // Copiar el texto al portapapeles
-    navigator.clipboard.writeText(summary).then(() => {
-      alert("Resumen de tareas copiado al portapapeles");
-    });
-  };
+  if (loading) return <p>Cargando tareas...</p>;
+  if (error) return <p>{error}</p>;
+  if (tasks.length === 0) return <p>No hay tareas.</p>;
 
   return (
     <div>
       <h2>Lista de Tareas</h2>
-      {tasks.length > 0 ? (
-        tasks.map((task) => (
-          <div key={task._id} className={`task ${task.completed ? "completed" : ""}`}>
-            <h3>{task.title}</h3>
-            <p>Categoría: {task.category}</p>
-            <p>Prioridad: {task.priority}%</p>
-
-            {/* Si la tarea está completada, mostrar "Deshacer", sino "Completar" */}
-            {task.completed ? (
-              <button
-                className="undo-btn"
-                onClick={() => toggleTask(task._id, task.completed)}
-              >
-                <FaUndo className="undo-icon" />
-                Deshacer
-              </button>
-            ) : (
-              <button
-                className="complete-btn"
-                onClick={() => toggleTask(task._id, task.completed)}
-              >
-                <FaCircle className="check-icon" />
-                Completar
-              </button>
-            )}
-
-            {/* Botón para eliminar */}
-            <button className="delete-btn" onClick={() => deleteTask(task._id)}>
-              Eliminar
-            </button>
-          </div>
-        ))
-      ) : (
-        <p>No hay tareas disponibles.</p>
-      )}
-
-      {/* Botón para copiar el resumen de tareas */}
-      <button onClick={copyTaskSummary} className="copy-btn">
-        Copiar Resumen de Tareas
-      </button>
+      {tasks.map((task) => (
+        <div key={task._id} className={task.completed ? "completed" : ""}>
+          <h3>{task.title}</h3>
+          <button onClick={() => toggleTask(task._id, task.completed)}>
+            {task.completed ? <FaUndo /> : <FaCircle />}
+            {task.completed ? "Deshacer" : "Completar"}
+          </button>
+          <button onClick={() => handleDelete(task._id)}>Eliminar</button>
+        </div>
+      ))}
     </div>
   );
 };
 
 export default TaskList;
+

@@ -1,23 +1,27 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import './assets/styles/styles.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Navbar from './components/Navbar.jsx';
 import Register from './components/Register.jsx';
-import 'bootstrap/dist/css/bootstrap.min.css'; // Estilos de Bootstrap
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Funcionalidades de Bootstrap
 import Login from './components/Login.jsx';
+import Profile from './components/Profile.jsx';
+import TaskManager from './components/TaskManager.jsx';
 
 const App = () => {
     return (
         <Router>
-            <nav>
-                <Link to="/register">Registro</Link>
-                <Link to="/login">Inicio de Sesión</Link>
-            </nav>
-            <Routes>
-                <Route path="/register" element={<Register />} />
-                <Route path="/login" element={<Login />} />
-            </Routes>
-        </Router> 
+            <Navbar /> 
+            <div className="container mt-4">
+                <Routes>
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/tasks" element={<TaskManager />} />
+                </Routes>
+            </div>
+        </Router>
     );
 };
 

@@ -1,33 +1,47 @@
 
+// server.js
 import express from 'express';
-import dotenv from 'dotenv';
-import envsConfig from "./src/config/envs.config.js"
+import envsConfig from "./src/config/envs.config.js";
 import cors from 'cors';
 import cookieParser from "cookie-parser";
-import { connectMongoDB } from "./src/db/connect.js";
-import routes from "./src/routes/index.router.js"
+import authRoutes from "./src/routes/auth.router.js";
+import taskRoutes from './src/routes/tasks.router.js';
+import { connectMongoDB } from './src/db/connect.js';
+import { verifyToken } from './src/utils/jwt.js';
 
-
-dotenv.config();
+connectMongoDB();
 const app = express();
 
-// Middlewares
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+}));
 app.use(express.json());
 app.use(cookieParser(envsConfig.SECRET_KEY));
 
-// Rutas
-app.use("/api", routes)
+app.use("/api", authRoutes); 
+app.use("/api", verifyToken); 
+app.use('/api', taskRoutes); 
 
-const PORT = process.env.PORT;
+app.listen(process.env.PORT, () => {
+  console.log(`Servidor corriendo con éxito`);
+});
 
-const startServer = async () => {
-    try {
-        await connectMongoDB();
-        app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
-    } catch (error) {
-        console.error('Error iniciando el servidor:', error);
-    }
-};
+export default app;
 
-startServer();
+// CONSIGNA MOCKS
+
+// import mocksRouter from "./src/routes/mocks.router.js"
+
+// app.use("/api/tasks", createTask)
+
+// app.use('/api/mocks', mocksRouter); // consigna mocks
+// app.get("/tasks/mockingtasks", async (req, res) => {
+//   const { count, userId } = req.query;
+//   try {
+//     const tasks = await generateTasks(count, userId);
+//     res.status(201).json(tasks);
+//   } catch (error) {
+//     res.status(500).json({ error: "Error generando tareas" });
+//   }
+// });

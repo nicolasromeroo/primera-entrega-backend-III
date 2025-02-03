@@ -1,47 +1,87 @@
 import React, { useState } from "react";
-import axios from "axios";  // Asegúrate de importar axios
 
 const Login = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+  });
 
-  const handleLogin = async (e) => {
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    console.log("Datos enviados al servidor:", formData); 
+
     try {
-      const response = await axios.post("http://localhost:8080/api/auth/login", {
-        username,
-        password,
+      const response = await fetch("http://localhost:8080/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+        }),
+        credentials: "include", 
       });
-      setMessage(`Bienvenido: ${response.data.user.username}`);
-      // Aquí puedes almacenar el token en cookies o localStorage
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Error al iniciar sesión");
+      }
+
+      // Si todo va bien
+      setSuccess("Inicio de sesión exitoso, redirigiendo...");
+      setTimeout(() => {
+        window.location.href = "/profile"; 
+      }, 2000);
+
     } catch (error) {
-      console.error("Error al iniciar sesión:", error);
-      setMessage(error.response?.data?.message || "Error al iniciar sesión");
+      setError(error.message); 
     }
   };
 
   return (
     <div>
-      <h2>Inicio de Sesión</h2>
-      <form onSubmit={handleLogin}>
-        <input
-          type="text"
-          placeholder="Nombre de usuario"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+      <h2>Iniciar Sesión</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Usuario</label>
+          <input
+            type="text"
+            name="username"
+            placeholder="Nombre de usuario"
+            value={formData.username}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div>
+          <label>Contraseña</label>
+          <input
+            type="password"
+            name="password"
+            placeholder="Contraseña"
+            value={formData.password}
+            onChange={handleChange}
+            required
+          />
+        </div>
         <button type="submit">Iniciar Sesión</button>
       </form>
-      {message && <p>{message}</p>}
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {success && <p style={{ color: "green" }}>{success}</p>}
     </div>
   );
 };
