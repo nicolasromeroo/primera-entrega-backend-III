@@ -1,5 +1,5 @@
 
-import bycrypt from "bcrypt";
+import bcrypt from "bcrypt";
 
 export const createHash = (password) => {
   return bycrypt.hashSync(password, bycrypt.genSaltSync(10));
