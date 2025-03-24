@@ -1,4 +1,3 @@
-
 // task.controller.js
 import Task from "../models/Task.js";
 import { Router } from 'express';
@@ -55,22 +54,15 @@ export const getTask = async (req, res) => {
   }
 };
 
-
 // eliminar tarea
 export const deleteTask = async (req, res) => {
   const { taskId } = req.params;
-  const token = req.headers.authorization?.split(" ")[1];
 
-  if (!token) {
-    return res.status(401).json({ message: "Token no proporcionado" });
+  if (!taskId) {
+    return res.status(400).json({ message: "Falta el ID de la tarea" });
   }
 
   try {
-    const decodedToken = verifyToken(token);
-    if (!decodedToken) {
-      return res.status(401).json({ message: "Token inválido o expirado" });
-    }
-
     const task = await Task.findByIdAndDelete(taskId);
     if (!task) {
       return res.status(404).json({ message: "Tarea no encontrada" });
@@ -79,9 +71,10 @@ export const deleteTask = async (req, res) => {
     res.status(200).json({ message: "Tarea eliminada correctamente" });
   } catch (error) {
     console.error("Error al eliminar la tarea:", error);
-    return res.status(500).json({ message: "Error en el servidor" });
+    return res.status(500).json({ message: "Error en el servidor", error: error.message });
   }
-}
+};
+
 
 export const editTask = async (req, res) => {
   const { taskId } = req.params;

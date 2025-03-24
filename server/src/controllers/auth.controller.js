@@ -1,7 +1,7 @@
 
 import bcrypt from "bcrypt"
 import { userDao } from "../dao/user.dao.js"
-import { createToken } from "../utils/jwt.js";
+import { createToken, updateLastConnection } from "../utils/jwt.js";
 
 export const register = async (req, res) => {
     const { username, password } = req.body;
@@ -53,6 +53,8 @@ export const login = async (req, res) => {
             id: userFound._id,
             username: userFound.username
         })
+        
+        updateLastConnection(req.user._id)
 
     } catch (error) {
         console.error("Error al iniciar sesión:", error);

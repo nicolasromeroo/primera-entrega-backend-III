@@ -3,6 +3,7 @@
 // utils/jwt.js
 import jwt from "jsonwebtoken";
 import envsConfig from "../config/envs.config.js";
+import { userModel } from "../models/User.js";
 
 export function createToken(payload) {
     return new Promise((resolve, reject) => {
@@ -36,3 +37,9 @@ export const verifyToken = (req, res, next) => {
         next(); 
     });
 };
+
+export const updateLastConnection = async (userId) => {
+    await userModel.findByIdAndUpdate(userId, {
+        last_connection: new Date()
+    })
+}

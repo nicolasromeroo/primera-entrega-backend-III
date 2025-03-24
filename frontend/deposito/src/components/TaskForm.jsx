@@ -18,17 +18,21 @@ const TaskForm = ({ onAddTask, userId }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null); 
-
+    
         const token = Cookies.get("token");
         if (!token) {
             setError("No hay sesión activa.");
             return;
         }
-
+    
         try {
             const res = await axios.post('http://localhost:8080/api/tasks', {
                 ...task,
                 userId: userId,  
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}` // Aquí está la corrección
+                }
             });
             onAddTask(res.data); 
             setTask({ title: '', category: '', priority: '' });  
@@ -37,6 +41,7 @@ const TaskForm = ({ onAddTask, userId }) => {
             setError("No se pudo agregar la tarea. Inténtalo de nuevo.");
         }
     };
+    
 
     return (
         <form onSubmit={handleSubmit} className="task-form">

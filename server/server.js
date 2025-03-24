@@ -8,9 +8,35 @@ import authRoutes from "./src/routes/auth.router.js";
 import taskRoutes from './src/routes/tasks.router.js';
 import { connectMongoDB } from './src/db/connect.js';
 import { verifyToken } from './src/utils/jwt.js';
+import swaggerJSDoc from 'swagger-jsdoc';
+import swaggerUiExpress from "swagger-ui-express"
+import { __dirname } from './src/path.js';
+import userRouter from './src/routes/users.router.js';
 
 connectMongoDB();
 const app = express();
+
+const swaggerOptions = {
+  definition: {
+    openapi: "3.1.0",
+    info: {
+      title: "Título de la doc",
+      description: "Descripción de la doc",
+    },
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT"
+        }
+      }
+    }
+  },
+  apis: [`${__dirname}/docs/**/*.yaml`]
+}
+
+const specs = swaggerJSDoc(swaggerOptions)
 
 app.use(cors({
   origin: "http://localhost:5173",
@@ -19,9 +45,10 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser(envsConfig.SECRET_KEY));
 
-app.use("/api", authRoutes); 
-app.use("/api", verifyToken); 
-app.use('/api', taskRoutes); 
+app.use("/api", authRoutes);
+app.use('/api', taskRoutes);
+app.use("/api/users", verifyToken, userRouter)
+app.use("/api-docs", swaggerUiExpress.serve, swaggerUiExpress.setup(specs))
 
 app.listen(process.env.PORT, () => {
   console.log(`Servidor corriendo con éxito`);
